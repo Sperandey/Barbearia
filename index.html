@@ -1,41 +1,112 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!doctype html>
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;700;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    <title>Amigo Secreto</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101012">
+  <meta name="description" content="BarbeariadoEdy: escolha serviços e agende barba, cabelo e bigode na Barbearia do Édi, em Novo Hamburgo.">
+  <meta property="og:site_name" content="BarbeariadoEdy">
+  <title>BarbeariadoEdy — Barbearia do Édi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
-
 <body>
-    <main class="main-content">
-        <header class="header-banner">
-            <h1 class="main-title">Amigo Secreto</h1>
-            <img src="assets/amigo-secreto.png" alt="Imagem representativa de amigo secreto">
-        </header>
-        
-        <section class="input-section">
-            <h2 class="section-title">Digite o nome dos seus amigos</h2>
-            <div class="input-wrapper">
-                <input type="text" id="amigo" class="input-name" placeholder="Digite um nome">
-                <button class="button-add" onclick="adicionarAmigo()">Adicionar</button>
-            </div>
-           
-            <ul id="listaAmigos" class="name-list" aria-labelledby="listaAmigos" role="list"></ul>
-            <ul id="resultado" class="result-list" aria-live="polite"></ul>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="BarbeariadoEdy, início"><img src="assets/logo.svg" alt="BarbeariadoEdy — Barbearia do Édi"></a>
+    <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Abrir menu"><span></span><span></span></button>
+    <nav class="main-nav" id="main-nav" aria-label="Navegação principal">
+      <a href="#servicos">Serviços</a><a href="#reels">Instagram</a><a href="#sobre">A barbearia</a><a href="#localizacao">Localização</a>
+    </nav>
+    <a class="header-cta" href="#agendar">Agendar <span aria-hidden="true">↗</span></a>
+  </header>
 
-            <div class="button-container">
-                <button class="button-draw" onclick="sortearAmigo()" aria-label="Sortear amigo secreto">
-                    <img src="assets/play_circle_outline.png" alt="Ícone para sortear">
-                    Sortear amigo
-                </button>
-            </div>
-        </section>
-    </main>
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+      <div class="hero-copy wrap">
+        <p class="eyebrow"><span class="eyebrow-mark">✳</span> NOVO HAMBURGO · RS</p>
+        <h1>O corte certo<br><em>muda tudo.</em></h1>
+        <p class="hero-text">Barba, cabelo e bigode com cuidado nos detalhes e aquele estilo que combina com você.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#agendar">Escolher horário <span>↗</span></a><a class="button button-quiet" href="#servicos">Conhecer serviços</a></div>
+        <div class="hero-social"><span class="live-dot"></span><span>7 anos de história</span><span class="social-divider"></span><a href="https://www.instagram.com/barbeariadoedi.nh/" target="_blank" rel="noreferrer">@barbeariadoedi.nh <span>↗</span></a></div>
+      </div>
+      <div class="hero-stamp" aria-hidden="true"><span>BARBA</span><b>✂</b><span>CABELO</span></div>
+      <a class="scroll-cue" href="#servicos"><span>ROLE PARA DESCOBRIR</span><i></i></a>
+    </section>
 
-    <script src="app.js" defer></script>
+    <section class="services-section section" id="servicos">
+      <div class="wrap">
+        <div class="section-heading">
+          <div><p class="eyebrow"><span class="eyebrow-mark">✳</span> CUIDADO DO SEU JEITO</p><h2>Escolha seu <em>serviço.</em></h2></div>
+          <p class="heading-note">Selecione o que você quer fazer e encontre um horário disponível.</p>
+        </div>
+        <div class="services-grid" id="services-grid" aria-live="polite"></div>
+        <div class="service-footnote"><span>✦</span> Valores e duração podem ser ajustados pela barbearia.</div>
+        <div class="services-end"><span>Já sabe o que quer? Confira os horários disponíveis.</span><a class="button button-primary" href="#agendar">Ver horários <span>↗</span></a></div>
+      </div>
+    </section>
+
+    <section class="booking-section section" id="agendar">
+      <div class="booking-glow"></div>
+      <div class="wrap booking-layout">
+        <div class="booking-copy"><p class="eyebrow"><span class="eyebrow-mark">✳</span> AGENDE EM POUCOS PASSOS</p><h2>Seu próximo<br><em>horário.</em></h2><p>Escolha serviço, dia e horário. A solicitação abre uma conversa com a Barbearia do Édi no WhatsApp para confirmar o agendamento.</p><div class="booking-contact"><span class="contact-icon">◉</span><div><small>CONFIRMAÇÃO DIRETO COM O ÉDI</small><strong>(51) 98989-1331</strong></div></div>
+          <div class="public-calendar" aria-label="Agenda pública da barbearia"><div class="calendar-head"><div><small>AGENDA</small><h3 id="calendar-month"></h3></div><div class="calendar-nav"><button type="button" id="calendar-prev" aria-label="Mês anterior">‹</button><button type="button" id="calendar-next" aria-label="Próximo mês">›</button></div></div><div class="calendar-weekdays"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div><div class="calendar-days" id="calendar-days"></div><div class="calendar-legend"><span><i class="legend-free"></i> Disponível</span><span><i class="legend-booked"></i> Reservado</span></div><div class="calendar-slots"><h4 id="calendar-selected-label">Escolha um dia</h4><div id="calendar-slot-list"></div></div></div>
+        </div>
+        <form class="booking-card" id="booking-form">
+          <div class="booking-card-head"><span>01 — SEU AGENDAMENTO</span><b>✂</b></div>
+          <label for="booking-service">Serviço</label><select id="booking-service" required></select>
+          <div class="field-row"><div><label for="booking-date">Data</label><input id="booking-date" type="date" required></div><div><label for="booking-time">Horário disponível</label><select id="booking-time" required disabled><option value="">Escolha uma data</option></select></div></div>
+          <label for="booking-name">Seu nome</label><input id="booking-name" type="text" placeholder="Como podemos te chamar?" autocomplete="name" required maxlength="80">
+          <label for="booking-phone">Seu WhatsApp</label><input id="booking-phone" type="tel" placeholder="(00) 00000-0000" autocomplete="tel" required maxlength="20">
+          <p class="booking-hint" id="booking-hint">Expediente inicial de demonstração: seg. a sáb., 9h às 19h. O Edy deve ajustar os horários reais no painel.</p>
+          <button class="button button-primary booking-submit" type="submit">Solicitar pelo WhatsApp <span>↗</span></button>
+          <p class="form-feedback" id="form-feedback" role="status" aria-live="polite"></p>
+          <p class="privacy-note">O envio abre o WhatsApp para você revisar e confirmar a solicitação.</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="reels-section section" id="reels">
+      <div class="wrap">
+        <div class="section-heading reels-heading"><div><p class="eyebrow"><span class="eyebrow-mark">✳</span> DO INSTAGRAM DIRETO PRA CÁ</p><h2>Na régua e <em>no feed.</em></h2></div><a class="instagram-link" href="https://www.instagram.com/barbeariadoedi.nh/" target="_blank" rel="noreferrer">Seguir @barbeariadoedi.nh <span>↗</span></a></div>
+        <div class="reels-grid">
+          <article class="reel-card"><div class="reel-frame"><iframe src="https://www.instagram.com/reel/Dewm-RuxJaO/embed/" title="Reel da Barbearia do Édi: momentos da barbearia" loading="lazy" allowtransparency="true" allowfullscreen></iframe></div><p>Um pouco do dia a dia na barbearia <span>REEL · INSTAGRAM</span></p></article>
+          <article class="reel-card"><div class="reel-frame"><iframe src="https://www.instagram.com/reel/DdEbhlaRlSE/embed/" title="Reel da Barbearia do Édi: humor de sábado" loading="lazy" allowtransparency="true" allowfullscreen></iframe></div><p>Os sábados por aqui têm história <span>REEL · INSTAGRAM</span></p></article>
+          <article class="reel-card"><div class="reel-frame"><iframe src="https://www.instagram.com/reel/Dc03J_8xJ17/embed/" title="Reel da Barbearia do Édi: corte e estilo" loading="lazy" allowtransparency="true" allowfullscreen></iframe></div><p>Estilo, técnica e personalidade <span>REEL · INSTAGRAM</span></p></article>
+        </div>
+        <p class="reels-note">Os vídeos são incorporados do perfil oficial. Se algum não carregar, assista pelo Instagram.</p>
+      </div>
+    </section>
+
+    <section class="about-section section" id="sobre">
+      <div class="wrap about-layout">
+        <div class="about-mark"><img src="assets/logo.svg" alt="BarbeariadoEdy — Barbearia do Édi"></div>
+        <div class="about-copy"><p class="eyebrow"><span class="eyebrow-mark">✳</span> FEITA DE CONVERSA BOA E CORTE BEM FEITO</p><h2>Seu lugar.<br><em>Seu estilo.</em></h2><p>Há 7 anos cuidando de barba, cabelo e bigode em Novo Hamburgo. Chega junto, escolhe teu serviço e a gente combina o melhor horário.</p><a class="button button-outline" href="https://www.instagram.com/barbeariadoedi.nh/" target="_blank" rel="noreferrer">Conheça o Instagram <span>↗</span></a></div>
+      </div>
+    </section>
+
+    <section class="location-section section" id="localizacao">
+      <div class="wrap location-layout"><div><p class="eyebrow"><span class="eyebrow-mark">✳</span> ESTAMOS POR AQUI</p><h2>Vem dar um <em>trato.</em></h2></div><div class="address-card"><span class="pin">⌖</span><div><strong>Barbearia do Édi</strong><p>Rua Guia Lopes, 616 · Loja 02<br>Rondônia · Novo Hamburgo · RS</p><a href="https://maps.google.com/?q=Rua+Guia+Lopes+616+Novo+Hamburgo+RS" target="_blank" rel="noreferrer">Abrir no mapa <span>↗</span></a></div></div><a class="button button-primary location-cta" href="https://api.whatsapp.com/send/?phone=5551989891331&text&type=phone_number&app_absent=0" target="_blank" rel="noreferrer">Falar no WhatsApp <span>↗</span></a></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="wrap footer-main"><a href="#inicio" aria-label="BarbeariadoEdy, início"><img src="assets/logo.svg" alt="BarbeariadoEdy — Barbearia do Édi" class="footer-logo"></a><div class="footer-social"><a href="https://www.instagram.com/barbeariadoedi.nh/" target="_blank" rel="noreferrer">Instagram ↗</a><a href="https://api.whatsapp.com/send/?phone=5551989891331&text&type=phone_number&app_absent=0" target="_blank" rel="noreferrer">WhatsApp ↗</a></div><button class="admin-open" id="admin-open" type="button">Área da barbearia</button></div><div class="wrap footer-bottom"><span>© <span id="year"></span> BarbeariadoEdy · Barbearia do Édi</span><span>BARBA · CABELO · BIGODE</span></div></footer>
+
+  <dialog class="admin-dialog" id="admin-dialog" aria-labelledby="admin-title"><button class="dialog-close" type="button" aria-label="Fechar">×</button><section class="admin-login" id="admin-login"><p class="eyebrow"><span class="eyebrow-mark">✳</span> ACESSO RESTRITO</p><h2>Área da barbearia</h2><p>Entre com o e-mail e a senha cadastrados para o barbeiro.</p><form id="admin-login-form" class="admin-form"><label>E-mail<input id="admin-email" type="email" autocomplete="username" required></label><label>Senha<input id="admin-password" type="password" autocomplete="current-password" required></label><button class="button button-primary" type="submit">Entrar</button><p class="form-feedback" id="admin-login-feedback" role="status"></p></form></section><div class="admin-content" id="admin-content" hidden><p class="eyebrow"><span class="eyebrow-mark">✳</span> CONFIGURAÇÃO</p><div class="admin-title-row"><h2 id="admin-title">Área da barbearia</h2><button class="text-button" id="admin-logout" type="button">Sair</button></div><p class="admin-warning">Serviços, expediente e reservas ficam sincronizados pelo Supabase.</p><div class="admin-tabs"><button class="admin-tab active" data-tab="services" type="button">Serviços</button><button class="admin-tab" data-tab="hours" type="button">Expediente</button><button class="admin-tab" data-tab="requests" type="button">Pedidos online</button></div>
+    <section class="admin-panel" id="panel-services">
+      <div id="service-list-view">
+        <div class="service-list-head"><div><h3>Serviços cadastrados</h3><p>Os serviços publicados aparecem na página principal.</p></div><button class="button button-primary" id="service-new" type="button">Cadastrar serviço <span>＋</span></button></div>
+        <div class="admin-list" id="admin-service-list"></div>
+      </div>
+      <section id="service-editor" hidden><h3 id="service-editor-title">Cadastrar serviço</h3><form id="service-form" class="admin-form"><input type="hidden" id="service-id"><label>Nome do serviço<input id="service-name" required maxlength="70" placeholder="Ex.: Corte masculino"></label><label>Descrição para os clientes<textarea id="service-description" maxlength="180" rows="3" placeholder="Conte brevemente o que está incluído no serviço."></textarea></label><div class="admin-fields"><label>Preço (R$)<input id="service-price" type="number" min="0" step="0.01" placeholder="Deixe vazio para consultar"></label><label>Duração (min)<input id="service-duration" type="number" min="10" step="5" value="40" required></label></div><div class="admin-actions"><button class="button button-primary" type="submit">Salvar serviço</button><button class="text-button" id="service-cancel" type="button">Voltar para serviços</button></div><p class="form-feedback" id="service-feedback" role="status" aria-live="polite"></p></form></section>
+    </section>
+    <section class="admin-panel" id="panel-hours" hidden><p class="admin-warning">O horário abaixo é apenas uma configuração inicial de demonstração. Ajuste para o expediente real antes de divulgar.</p><form id="hours-form" class="admin-form"><p class="admin-subtitle">Dias de atendimento</p><div class="weekday-picks" id="weekday-picks"></div><div class="admin-fields"><label>Abre às<input id="hours-open" type="time" required></label><label>Último horário<input id="hours-close" type="time" required></label></div><label>Intervalo entre horários<select id="hours-step"><option value="15">15 minutos</option><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60">60 minutos</option></select></label><button class="button button-primary" type="submit">Salvar expediente</button></form></section>
+    <section class="admin-panel" id="panel-requests" hidden><div class="admin-list" id="admin-request-list"></div></section></div></dialog>
 </body>
 </html>
