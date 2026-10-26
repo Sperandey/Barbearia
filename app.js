@@ -157,7 +157,7 @@
       <article class="service-card">
         <div class="service-topline"><span>0${index + 1} / SERVIÇO</span><span class="service-icon" aria-hidden="true">✂</span></div>
         <h3>${escapeHTML(service.name)}</h3><p>${escapeHTML(service.description || 'Um cuidado pensado para você sair com o visual em dia.')}</p>
-        <div class="service-bottom"><div class="service-price"><small>A PARTIR DE</small>${escapeHTML(money(service.price))}<span class="service-duration"> · ${escapeHTML(service.duration)} min</span></div><a class="service-book" href="https://api.whatsapp.com/send/?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(`Olá, Édi! Quero saber sobre ${service.name} e agendar um horário.`)}&type=phone_number&app_absent=0" target="_blank" rel="noreferrer" aria-label="Falar no WhatsApp sobre ${escapeHTML(service.name)}">↗</a></div>
+        <div class="service-bottom"><div class="service-price"><small>PREÇO</small>${escapeHTML(money(service.price))}<span class="service-duration"> · ${escapeHTML(service.duration)} min</span></div><a class="service-book" href="https://api.whatsapp.com/send/?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(`Olá, Édi! Quero saber sobre ${service.name} e agendar um horário.`)}&type=phone_number&app_absent=0" target="_blank" rel="noreferrer" aria-label="Falar no WhatsApp sobre ${escapeHTML(service.name)}">↗</a></div>
       </article>`).join('');
   }
   function renderBookingServices() {
@@ -443,3 +443,4 @@
   }
   init();
 })();
+

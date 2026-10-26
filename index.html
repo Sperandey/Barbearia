@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101012">
-  <meta name="description" content="BarbeariadoEdy: escolha serviços e agende barba, cabelo e bigode na Barbearia do Édi, em Novo Hamburgo.">
+  <meta name="description" content="BarbeariadoEdy: consulte os serviços e preços e agende barba, cabelo e bigode na Barbearia do Édi, em Novo Hamburgo.">
   <meta property="og:site_name" content="BarbeariadoEdy">
   <title>BarbeariadoEdy — Barbearia do Édi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,9 +104,10 @@
         <div class="service-list-head"><div><h3>Serviços cadastrados</h3><p>Os serviços publicados aparecem na página principal.</p></div><button class="button button-primary" id="service-new" type="button">Cadastrar serviço <span>＋</span></button></div>
         <div class="admin-list" id="admin-service-list"></div>
       </div>
-      <section id="service-editor" hidden><h3 id="service-editor-title">Cadastrar serviço</h3><form id="service-form" class="admin-form"><input type="hidden" id="service-id"><label>Nome do serviço<input id="service-name" required maxlength="70" placeholder="Ex.: Corte masculino"></label><label>Descrição para os clientes<textarea id="service-description" maxlength="180" rows="3" placeholder="Conte brevemente o que está incluído no serviço."></textarea></label><div class="admin-fields"><label>Preço (R$)<input id="service-price" type="number" min="0" step="0.01" placeholder="Deixe vazio para consultar"></label><label>Duração (min)<input id="service-duration" type="number" min="10" step="5" value="40" required></label></div><div class="admin-actions"><button class="button button-primary" type="submit">Salvar serviço</button><button class="text-button" id="service-cancel" type="button">Voltar para serviços</button></div><p class="form-feedback" id="service-feedback" role="status" aria-live="polite"></p></form></section>
+      <section id="service-editor" hidden><h3 id="service-editor-title">Cadastrar serviço</h3><form id="service-form" class="admin-form"><input type="hidden" id="service-id"><label>Nome do serviço<input id="service-name" required maxlength="70" placeholder="Ex.: Corte masculino"></label><label>Descrição para os clientes<textarea id="service-description" maxlength="180" rows="3" placeholder="Conte brevemente o que está incluído no serviço."></textarea></label><div class="admin-fields"><label>Preço (R$)<input id="service-price" type="number" min="0" step="0.01" placeholder="Ex.: 45,00" required></label><label>Duração (min)<input id="service-duration" type="number" min="10" step="5" value="40" required></label></div><div class="admin-actions"><button class="button button-primary" type="submit">Salvar serviço</button><button class="text-button" id="service-cancel" type="button">Voltar para serviços</button></div><p class="form-feedback" id="service-feedback" role="status" aria-live="polite"></p></form></section>
     </section>
     <section class="admin-panel" id="panel-hours" hidden><p class="admin-warning">O horário abaixo é apenas uma configuração inicial de demonstração. Ajuste para o expediente real antes de divulgar.</p><form id="hours-form" class="admin-form"><p class="admin-subtitle">Dias de atendimento</p><div class="weekday-picks" id="weekday-picks"></div><div class="admin-fields"><label>Abre às<input id="hours-open" type="time" required></label><label>Último horário<input id="hours-close" type="time" required></label></div><label>Intervalo entre horários<select id="hours-step"><option value="15">15 minutos</option><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60">60 minutos</option></select></label><button class="button button-primary" type="submit">Salvar expediente</button></form></section>
     <section class="admin-panel" id="panel-requests" hidden><div class="admin-list" id="admin-request-list"></div></section></div></dialog>
 </body>
 </html>
+

@@ -4,8 +4,8 @@ Site responsivo em HTML, CSS e JavaScript puro. Abra `index.html` no navegador o
 
 ## O que já está incluído
 
-- Identidade visual inspirada no avatar do Instagram da barbearia.
-- Serviços cadastráveis, editáveis, ocultáveis e removíveis pela Área da barbearia. O cadastro tem uma tela própria com nome, descrição, preço e duração; serviços publicados aparecem na página principal.
+- Logo vetorial moderno, usado também como ícone do site.
+- Serviços cadastráveis, editáveis, ocultáveis e removíveis pela Área da barbearia. O cadastro tem uma tela própria com nome, descrição, preço obrigatório e duração; serviços publicados aparecem com o preço na página principal.
 - Seleção de serviço, dia e horários calculados a partir do expediente configurado.
 - Pedido de horário com nome e WhatsApp; a solicitação abre uma conversa pré-preenchida com o Edy.
 - Reels públicos incorporados do Instagram.
@@ -39,7 +39,8 @@ O workflow `.github/workflows/pages.yml` publica o conteúdo do projeto sempre q
 ## Ajustes antes de divulgar
 
 1. Abra **Área da barbearia** no rodapé e configure o expediente real.
-2. Cadastre preços, duração e serviços reais. Os três serviços iniciais são exemplos editáveis e exibem “Consultar” como preço.
+2. Cadastre preços, duração e serviços reais. Os três serviços iniciais são exemplos editáveis e exibem “Consultar” até o barbeiro informar os valores reais.
 3. Os três Reels na seção Instagram são IDs fixos. Para trocar, substitua os códigos das URLs em `index.html` por outros Reels públicos da conta.
 
 Contato e endereço foram lidos do perfil público `@barbeariadoedi.nh` em 23/10/2026.
+
