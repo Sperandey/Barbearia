@@ -18,3 +18,4 @@ dialog{color:var(--text)}.admin-dialog{width:min(680px,calc(100% - 26px));max-he
 
 .service-list-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0}.service-list-head h3,#service-editor-title{margin:0 0 5px;font-family:var(--display);font-size:25px;text-transform:uppercase}.service-list-head p{margin:0;color:#aaa5ae;font-size:10px}.service-list-head .button{border:0;cursor:pointer;white-space:nowrap}#service-editor{padding-top:10px}#service-editor[hidden],#service-list-view[hidden]{display:none}@media(max-width:560px){.service-list-head{align-items:stretch;flex-direction:column}.service-list-head .button{width:100%;justify-content:space-between}}
 .booking-contact[hidden],#shop-address-card[hidden],#shop-whatsapp-link[hidden],.footer-social [hidden],#shop-instagram[hidden],#hero-instagram[hidden]{display:none!important}
+[hidden]{display:none!important}

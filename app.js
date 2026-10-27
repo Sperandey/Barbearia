@@ -415,13 +415,25 @@
     if (!shop) await loadSharedData(false).catch(() => {});
     const draft = read(KEYS.signup, null);
     if (draft && draft.email === session.user.email) {
-      login.hidden = true; signup.hidden = true; content.hidden = true; setup.hidden = false;
-      $('#setup-shop-name').value = draft.name;
-      $('#setup-shop-slug').value = draft.slug;
-      $('#setup-shop-whatsapp').value = draft.whatsapp;
-      const created = await createShopForUser(draft, session.user.id);
-      if (!created) return;
-      localStorage.removeItem(KEYS.signup);
+      login.hidden = true; signup.hidden = false; content.hidden = true; setup.hidden = true;
+      $('#signup-shop-name').value = draft.name || '';
+      $('#signup-shop-slug').value = draft.slug || '';
+      $('#signup-shop-whatsapp').value = draft.whatsapp || '';
+      $('#signup-email').value = draft.email;
+      $('#signup-shop-name').readOnly = true; $('#signup-shop-slug').readOnly = true;
+      $('#signup-shop-whatsapp').readOnly = true; $('#signup-email').readOnly = true;
+      $('#signup-code-fields').hidden = false;
+      $('#signup-code').closest('label').hidden = true;
+      $('#signup-code').required = false;
+      $('#signup-code').disabled = true;
+      $('#signup-password').required = true;
+      $('#signup-send-code').hidden = true;
+      $('#signup-change-email').hidden = true;
+      $('#signup-resend-code').hidden = true;
+      $('#signup-create-account').hidden = false;
+      $('#signup-create-account').disabled = false;
+      $('#signup-feedback').textContent = 'E-mail confirmado. Defina sua senha para concluir o cadastro da barbearia.';
+      return;
     }
     const { data: membership, error } = await db.from('barber_shop_members').select('role').eq('user_id', session.user.id).eq('shop_id', shop.id).maybeSingle();
     if (error) { $('#admin-login-feedback').textContent = `Não foi possível verificar o acesso: ${error.message}`; return; }
@@ -499,27 +511,119 @@
       if (error) { $('#admin-login-feedback').textContent = `Não foi possível entrar: ${error.message}`; return; }
       await showAdminPanel(data.session, loginMode);
     });
-    $('#signup-open').addEventListener('click', () => { $('#admin-login').hidden = true; $('#admin-signup').hidden = false; });
+    $('#signup-open').addEventListener('click', () => {
+      $('#admin-login').hidden = true; $('#admin-signup').hidden = false;
+      const draft = read(KEYS.signup, null);
+      if (draft) {
+        $('#signup-shop-name').value = draft.name || '';
+        $('#signup-shop-slug').value = draft.slug || '';
+        $('#signup-shop-whatsapp').value = draft.whatsapp || '';
+        $('#signup-email').value = draft.email || '';
+        $('#signup-shop-name').readOnly = true; $('#signup-shop-slug').readOnly = true;
+        $('#signup-shop-whatsapp').readOnly = true; $('#signup-email').readOnly = true;
+        $('#signup-code-fields').hidden = false;
+        $('#signup-code').closest('label').hidden = false;
+        $('#signup-code').required = true; $('#signup-code').disabled = false;
+        $('#signup-password').required = true;
+        $('#signup-send-code').hidden = true; $('#signup-change-email').hidden = false;
+        $('#signup-resend-code').hidden = false; $('#signup-create-account').hidden = false;
+        $('#signup-resend-code').disabled = false; $('#signup-resend-code').textContent = 'Reenviar código';
+        $('#signup-create-account').disabled = false;
+        $('#signup-feedback').textContent = 'Digite o código enviado ao e-mail para criar sua senha.';
+      }
+    });
     $('#signup-cancel').addEventListener('click', () => { $('#admin-signup').hidden = true; $('#admin-login').hidden = false; });
     $('#signup-shop-name').addEventListener('input', () => {
       if (!$('#signup-shop-slug').dataset.edited) $('#signup-shop-slug').value = $('#signup-shop-name').value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     });
     $('#signup-shop-slug').addEventListener('input', () => { $('#signup-shop-slug').dataset.edited = 'true'; });
-    $('#signup-form').addEventListener('submit', async event => {
-      event.preventDefault();
+    let resendTimer = null;
+    const startResendCooldown = () => {
+      const resend = $('#signup-resend-code');
+      if (resendTimer) clearInterval(resendTimer);
+      let seconds = 60;
+      resend.disabled = true; resend.textContent = `Reenviar em ${seconds}s`;
+      resendTimer = setInterval(() => {
+        seconds -= 1;
+        if (seconds <= 0) {
+          clearInterval(resendTimer); resendTimer = null;
+          resend.disabled = false; resend.textContent = 'Reenviar código';
+        } else resend.textContent = `Reenviar em ${seconds}s`;
+      }, 1000);
+    };
+    const sendSignupCode = async () => {
       if (!db) { $('#signup-feedback').textContent = 'Conexão com o banco de dados indisponível.'; return; }
       const draft = { name: $('#signup-shop-name').value.trim(), slug: $('#signup-shop-slug').value.trim(), whatsapp: $('#signup-shop-whatsapp').value.trim(), email: $('#signup-email').value.trim(), instagram_url: '', address: '', city: '', state: '', about: '' };
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(draft.slug)) { $('#signup-feedback').textContent = 'Use letras minúsculas, números e hífens no link.'; return; }
-      write(KEYS.signup, draft); $('#signup-feedback').textContent = 'Criando conta…';
-      const { data, error } = await db.auth.signUp({ email: draft.email, password: $('#signup-password').value });
-      if (error) { $('#signup-feedback').textContent = `Não foi possível criar a conta: ${error.message}`; return; }
-      if (data.session) {
-        const created = await createShopForUser(draft, data.user.id, '#signup-feedback');
-        if (created) localStorage.removeItem(KEYS.signup);
-        else { $('#admin-login').hidden = true; $('#admin-signup').hidden = false; $('#shop-setup').hidden = true; $('#admin-content').hidden = true; }
-      } else {
-        $('#signup-feedback').textContent = 'Conta criada. Confirme o e-mail; depois entre com essa conta para concluir o cadastro da barbearia.';
+      $('#signup-send-code').disabled = true; $('#signup-resend-code').disabled = true;
+      $('#signup-feedback').textContent = 'Enviando código de verificação…';
+      const { error } = await db.auth.signInWithOtp({ email: draft.email, options: { shouldCreateUser: true, data: { shop_name: draft.name } } });
+      $('#signup-send-code').disabled = false;
+      if (error) {
+        $('#signup-resend-code').disabled = false;
+        $('#signup-feedback').textContent = `Não foi possível enviar o código: ${error.message}`;
+        return;
       }
+      write(KEYS.signup, draft);
+      $('#signup-shop-name').readOnly = true; $('#signup-shop-slug').readOnly = true;
+      $('#signup-shop-whatsapp').readOnly = true; $('#signup-email').readOnly = true;
+      $('#signup-code-fields').hidden = false;
+      $('#signup-code').closest('label').hidden = false;
+      $('#signup-code').disabled = false; $('#signup-code').required = true;
+      $('#signup-password').required = true;
+      $('#signup-send-code').hidden = true; $('#signup-change-email').hidden = false;
+      $('#signup-resend-code').hidden = false; $('#signup-create-account').hidden = false;
+      $('#signup-feedback').textContent = `Código enviado para ${draft.email}. Digite o código para confirmar o e-mail e criar sua senha.`;
+      startResendCooldown();
+      $('#signup-code').focus();
+    };
+    $('#signup-send-code').addEventListener('click', () => {
+      if ($('#signup-form').reportValidity()) sendSignupCode();
+    });
+    $('#signup-resend-code').addEventListener('click', sendSignupCode);
+    $('#signup-change-email').addEventListener('click', () => {
+      if (resendTimer) { clearInterval(resendTimer); resendTimer = null; }
+      localStorage.removeItem(KEYS.signup);
+      $('#signup-shop-name').readOnly = false; $('#signup-shop-slug').readOnly = false;
+      $('#signup-shop-whatsapp').readOnly = false; $('#signup-email').readOnly = false;
+      $('#signup-code').value = ''; $('#signup-code').required = false; $('#signup-code').disabled = false;
+      $('#signup-code').closest('label').hidden = false;
+      $('#signup-password').value = ''; $('#signup-password').required = false;
+      $('#signup-code-fields').hidden = true; $('#signup-send-code').hidden = false;
+      $('#signup-change-email').hidden = true; $('#signup-resend-code').hidden = true;
+      $('#signup-resend-code').disabled = false; $('#signup-resend-code').textContent = 'Reenviar código';
+      $('#signup-create-account').hidden = true; $('#signup-feedback').textContent = '';
+    });
+    $('#signup-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!db) { $('#signup-feedback').textContent = 'Conexão com o banco de dados indisponível.'; return; }
+      const draft = read(KEYS.signup, null);
+      if (!draft || draft.email !== $('#signup-email').value.trim()) { $('#signup-feedback').textContent = 'Envie um código para confirmar seu e-mail antes de criar a senha.'; return; }
+      $('#signup-create-account').disabled = true;
+      $('#signup-feedback').textContent = 'Confirmando o código…';
+      let user = null;
+      const { data: currentSession } = await db.auth.getSession();
+      if (currentSession.session?.user?.email === draft.email && currentSession.session.user.email_confirmed_at) {
+        user = currentSession.session.user;
+      } else {
+        const { data, error } = await db.auth.verifyOtp({ email: draft.email, token: $('#signup-code').value.trim(), type: 'email' });
+        if (error) {
+          $('#signup-create-account').disabled = false;
+          $('#signup-feedback').textContent = `Código inválido ou expirado: ${error.message}`;
+          return;
+        }
+        user = data.user;
+      }
+      const { error: passwordError } = await db.auth.updateUser({ password: $('#signup-password').value });
+      if (passwordError) {
+        $('#signup-create-account').disabled = false;
+        $('#signup-feedback').textContent = `E-mail confirmado, mas não foi possível salvar a senha: ${passwordError.message}`;
+        return;
+      }
+      $('#signup-feedback').textContent = 'Senha criada. Configurando a barbearia…';
+      const created = await createShopForUser(draft, user.id, '#signup-feedback');
+      $('#signup-create-account').disabled = false;
+      if (created) localStorage.removeItem(KEYS.signup);
     });
     $('#shop-setup-form').addEventListener('submit', async event => {
       event.preventDefault();

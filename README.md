@@ -8,7 +8,7 @@ Site responsivo em HTML, CSS e JavaScript puro. Abra `index.html` no navegador o
 - Serviços cadastráveis, editáveis, ocultáveis e removíveis pela Área da barbearia. O cadastro tem uma tela própria com nome, descrição, preço obrigatório e duração; serviços publicados aparecem com o preço na página principal.
 - Seleção de serviço, dia e horários calculados a partir do expediente configurado.
 - Cada loja recebe um endereço próprio no formato `?loja=slug`.
-- Cada barbearia cadastra seu próprio usuário e senha para acessar serviços, valores, expediente e pedidos da loja.
+- Cada barbearia confirma o e-mail com um código antes de criar sua senha e acessar serviços, valores, expediente e pedidos da loja.
 - A conta ADM entra pela opção **ADM** e pode selecionar e administrar todas as barbearias.
 - Serviços, horários, perfil e reservas são separados por barbearia.
 - O cliente escolhe um horário e envia a solicitação pelo WhatsApp da loja.
@@ -36,4 +36,4 @@ O workflow `.github/workflows/pages.yml` publica o conteúdo do projeto sempre q
 
 O repositório GitHub está conectado à Vercel; cada atualização enviada para a branch `main` inicia uma nova publicação de produção.
 
-A migration `supabase/migrations/20261027015119_platform_admin_access.sql` concede acesso global às contas registradas em `barber_admins`; cada conta de barbearia continua restrita à própria loja.
+A migration `supabase/migrations/20261027015119_platform_admin_access.sql` concede acesso global às contas registradas em `barber_admins`; cada conta de barbearia continua restrita à própria loja. Para receber código numérico, em Supabase → Authentication → Email Templates → Magic Link, use `{{ .Token }}` no modelo e remova `{{ .ConfirmationURL }}`.
