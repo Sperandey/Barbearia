@@ -29,6 +29,9 @@
   let hours = read(KEYS.hours, defaultHours);
   let requests = read(KEYS.requests, []);
   let adminAuthorized = false;
+  let platformAdmin = false;
+  let adminViewingInactiveShop = false;
+  let loginMode = 'shop';
 
   function escapeHTML(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -87,9 +90,11 @@
     const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
     return { id: booking.id, serviceId: booking.service_id, serviceName: services.find(service => service.id === booking.service_id)?.name || '', duration: booking.duration_minutes, name: booking.customer_name || '', phone: booking.customer_phone || '', date, dateLabel, time: booking.start_time, startMinute: booking.start_minute, status: booking.status, createdAt: booking.created_at };
   }
-  async function loadSharedData(includePrivate = adminAuthorized) {
+  async function loadSharedData(includePrivate = adminAuthorized, includeInactive = adminViewingInactiveShop) {
     if (!db) return;
-    const { data: profile, error: profileError } = await db.from('barbershops').select('id,name,slug,whatsapp,instagram_url,address,city,state,about,active').eq('slug', shopSlug).eq('active', true).maybeSingle();
+    let profileQuery = db.from('barbershops').select('id,name,slug,whatsapp,instagram_url,address,city,state,about,active').eq('slug', shopSlug);
+    if (!includeInactive) profileQuery = profileQuery.eq('active', true);
+    const { data: profile, error: profileError } = await profileQuery.maybeSingle();
     if (profileError) throw profileError;
     if (!profile) throw new Error(`Não encontramos a barbearia "${shopSlug}". Confira o link enviado pela loja.`);
     shop = profile;
@@ -134,12 +139,12 @@
     if (problem) {
       services = previousServices;
       write(KEYS.services, services);
-      await loadSharedData(true).catch(() => {});
+      await loadSharedData(true, adminViewingInactiveShop).catch(() => {});
       if (feedback) feedback.textContent = `Não foi possível salvar no Supabase: ${problem.message}`;
       return false;
     }
     write(KEYS.services, services);
-    await loadSharedData(true).catch(showDatabaseError);
+    await loadSharedData(true, adminViewingInactiveShop).catch(showDatabaseError);
     if (feedback) feedback.textContent = 'Serviço salvo e publicado na página principal.';
     return true;
   }
@@ -252,7 +257,7 @@
       if (db && adminAuthorized) {
         const { error } = await db.from('bookings').update({ status: 'confirmed' }).eq('shop_id', shop.id).eq('id', button.dataset.confirm);
         if (error) { button.disabled = false; $('#admin-login-feedback').textContent = `Não foi possível confirmar: ${error.message}`; return; }
-        await loadSharedData(true).catch(showDatabaseError); return;
+        await loadSharedData(true, adminViewingInactiveShop).catch(showDatabaseError); return;
       }
       requests = requests.map(request => request.id === button.dataset.confirm ? { ...request, status: 'confirmed' } : request);
       persistRequests();
@@ -262,7 +267,7 @@
       if (db && adminAuthorized) {
         const { error } = await db.from('bookings').update({ status: 'cancelled' }).eq('shop_id', shop.id).eq('id', button.dataset.cancel);
         if (error) { button.disabled = false; $('#admin-login-feedback').textContent = `Não foi possível cancelar: ${error.message}`; return; }
-        await loadSharedData(true).catch(showDatabaseError); return;
+        await loadSharedData(true, adminViewingInactiveShop).catch(showDatabaseError); return;
       }
       requests = requests.map(request => request.id === button.dataset.cancel ? { ...request, status: 'cancelled' } : request);
       persistRequests();
@@ -350,30 +355,11 @@
   function renderWeekdayPicks() {
     $('#weekday-picks').innerHTML = weekdayNames.map((name, index) => `<label><input type="checkbox" value="${index}" ${hours.days.includes(index) ? 'checked' : ''}><span>${name}</span></label>`).join('');
   }
-  async function showAdminPanel(session) {
-    const login = $('#admin-login'); const signup = $('#admin-signup'); const setup = $('#shop-setup'); const content = $('#admin-content');
-    if (!db || !session?.user) { login.hidden = false; signup.hidden = true; setup.hidden = true; content.hidden = true; $('#admin-login-feedback').textContent = 'Entre na conta da sua barbearia.'; return; }
-    if (!shop) await loadSharedData(false).catch(() => {});
-    const draft = read(KEYS.signup, null);
-    if (draft && draft.email === session.user.email) {
-      login.hidden = true; signup.hidden = true; content.hidden = true; setup.hidden = false;
-      $('#setup-shop-name').value = draft.name;
-      $('#setup-shop-slug').value = draft.slug;
-      $('#setup-shop-whatsapp').value = draft.whatsapp;
-      const created = await createShopForUser(draft, session.user.id);
-      if (!created) return;
-      localStorage.removeItem(KEYS.signup);
-    }
-    const { data: membership, error } = await db.from('barber_shop_members').select('role').eq('user_id', session.user.id).eq('shop_id', shop.id).maybeSingle();
-    if (error) { $('#admin-login-feedback').textContent = `Não foi possível verificar o acesso: ${error.message}`; return; }
-    if (!membership) {
-      adminAuthorized = false; login.hidden = true; signup.hidden = true; content.hidden = true; setup.hidden = false;
-      $('#setup-shop-name').value = draft?.name || '';
-      $('#setup-shop-slug').value = draft?.slug || '';
-      $('#setup-shop-whatsapp').value = draft?.whatsapp || '';
-      return;
-    }
-    adminAuthorized = true; login.hidden = true; signup.hidden = true; setup.hidden = true; content.hidden = false;
+  function showShopAdminContent() {
+    adminAuthorized = true;
+    $('#admin-login').hidden = true; $('#admin-signup').hidden = true; $('#admin-shop-picker').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = false;
+    $('#admin-back-to-shops').hidden = !platformAdmin;
+    $('#admin-shop-name').textContent = shop?.name || '';
     $('#profile-name').value = shop.name || '';
     $('#profile-slug').value = shop.slug || '';
     $('#profile-whatsapp').value = shop.whatsapp || '';
@@ -387,7 +373,67 @@
     $('#hours-step').value = String(hours.step);
     renderWeekdayPicks();
     renderAdminServices();
-    await loadSharedData(true).catch(showDatabaseError);
+  }
+  async function isPlatformAdmin(userId) {
+    const { data, error } = await db.from('barber_admins').select('user_id').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    return Boolean(data);
+  }
+  async function showPlatformShopPicker() {
+    adminAuthorized = false;
+    $('#admin-login').hidden = true; $('#admin-signup').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = true;
+    $('#admin-shop-picker').hidden = false;
+    const select = $('#admin-shop-list');
+    select.innerHTML = '<option value="">Carregando barbearias…</option>';
+    const { data, error } = await db.from('barbershops').select('name,slug,active').order('name');
+    if (error) { $('#admin-shop-picker-feedback').textContent = `Não foi possível carregar as barbearias: ${error.message}`; return; }
+    select.innerHTML = data?.length
+      ? data.map(item => `<option value="${escapeHTML(item.slug)}">${escapeHTML(item.name)}${item.active ? '' : ' · Inativa'}</option>`).join('')
+      : '<option value="">Nenhuma barbearia cadastrada</option>';
+    $('#admin-shop-picker-feedback').textContent = data?.length ? '' : 'Cadastre a primeira barbearia usando o acesso da loja.';
+  }
+  async function showAdminPanel(session, mode = loginMode) {
+    const login = $('#admin-login'); const signup = $('#admin-signup'); const setup = $('#shop-setup'); const content = $('#admin-content');
+    if (!db || !session?.user) { login.hidden = false; signup.hidden = true; $('#admin-shop-picker').hidden = true; setup.hidden = true; content.hidden = true; $('#admin-login-feedback').textContent = 'Entre com o e-mail e a senha da sua conta.'; return; }
+    let isAdmin = false;
+    try { isAdmin = await isPlatformAdmin(session.user.id); }
+    catch (error) { $('#admin-login-feedback').textContent = `Não foi possível conferir o perfil de acesso: ${error.message}`; return; }
+    if (mode === 'platform') {
+      if (!isAdmin) {
+        await db.auth.signOut();
+        login.hidden = false; $('#admin-shop-picker').hidden = true;
+        $('#admin-login-feedback').textContent = 'Esta conta não tem perfil ADM. Entre como barbearia ou peça ao administrador para liberar o acesso.';
+        return;
+      }
+      platformAdmin = true;
+      adminViewingInactiveShop = true;
+      await showPlatformShopPicker();
+      return;
+    }
+    platformAdmin = isAdmin;
+    adminViewingInactiveShop = isAdmin;
+    if (!shop) await loadSharedData(false).catch(() => {});
+    const draft = read(KEYS.signup, null);
+    if (draft && draft.email === session.user.email) {
+      login.hidden = true; signup.hidden = true; content.hidden = true; setup.hidden = false;
+      $('#setup-shop-name').value = draft.name;
+      $('#setup-shop-slug').value = draft.slug;
+      $('#setup-shop-whatsapp').value = draft.whatsapp;
+      const created = await createShopForUser(draft, session.user.id);
+      if (!created) return;
+      localStorage.removeItem(KEYS.signup);
+    }
+    const { data: membership, error } = await db.from('barber_shop_members').select('role').eq('user_id', session.user.id).eq('shop_id', shop.id).maybeSingle();
+    if (error) { $('#admin-login-feedback').textContent = `Não foi possível verificar o acesso: ${error.message}`; return; }
+    if (!membership && !isAdmin) {
+      adminAuthorized = false; login.hidden = true; signup.hidden = true; content.hidden = true; setup.hidden = false;
+      $('#setup-shop-name').value = draft?.name || '';
+      $('#setup-shop-slug').value = draft?.slug || '';
+      $('#setup-shop-whatsapp').value = draft?.whatsapp || '';
+      return;
+    }
+    showShopAdminContent();
+    await loadSharedData(true, adminViewingInactiveShop).catch(showDatabaseError);
   }
   async function createShopForUser(profile, userId, feedbackId = '#setup-feedback') {
     const feedback = $(feedbackId);
@@ -412,28 +458,46 @@
     const url = new URL(location.href); url.searchParams.set('loja', created.slug); history.replaceState({}, '', url);
     renderShopProfile();
     adminAuthorized = true; $('#shop-setup').hidden = true; $('#admin-login').hidden = true; $('#admin-signup').hidden = true; $('#admin-content').hidden = false;
-    await loadSharedData(true).catch(showDatabaseError);
+    await loadSharedData(true, adminViewingInactiveShop).catch(showDatabaseError);
     if (feedback) feedback.textContent = 'Barbearia criada. Este é o link exclusivo para compartilhar com seus clientes.';
     return true;
   }
   async function openAdmin() {
-    $('#admin-login').hidden = false; $('#admin-signup').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = true; $('#admin-login-feedback').textContent = '';
+    $('#admin-login').hidden = false; $('#admin-signup').hidden = true; $('#admin-shop-picker').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = true; $('#admin-login-feedback').textContent = '';
     $('#admin-dialog').showModal();
     if (db) {
       const { data } = await db.auth.getSession();
-      if (data.session) await showAdminPanel(data.session);
+      if (data.session) {
+        let mode = 'shop';
+        try { if (await isPlatformAdmin(data.session.user.id)) mode = 'platform'; } catch {}
+        await showAdminPanel(data.session, mode);
+      }
     } else $('#admin-login-feedback').textContent = 'Não foi possível carregar a conexão com o Supabase.';
   }
   function setupAdmin() {
     const dialog = $('#admin-dialog');
     $('#admin-open').addEventListener('click', openAdmin);
+    const setLoginMode = mode => {
+      loginMode = mode;
+      $('#shop-login-mode').classList.toggle('active', mode === 'shop');
+      $('#platform-login-mode').classList.toggle('active', mode === 'platform');
+      $('#shop-login-mode').setAttribute('aria-pressed', String(mode === 'shop'));
+      $('#platform-login-mode').setAttribute('aria-pressed', String(mode === 'platform'));
+      $('#login-mode-description').textContent = mode === 'platform'
+        ? 'Acesso administrativo para gerenciar as barbearias cadastradas.'
+        : 'A barbearia entra com o e-mail e a senha próprios da loja.';
+      $('#signup-open').hidden = mode === 'platform';
+      $('#admin-login-feedback').textContent = '';
+    };
+    $('#shop-login-mode').addEventListener('click', () => setLoginMode('shop'));
+    $('#platform-login-mode').addEventListener('click', () => setLoginMode('platform'));
     $('#admin-login-form').addEventListener('submit', async event => {
       event.preventDefault();
       if (!db) { $('#admin-login-feedback').textContent = 'Conexão com o Supabase indisponível.'; return; }
       $('#admin-login-feedback').textContent = 'Verificando acesso…';
       const { data, error } = await db.auth.signInWithPassword({ email: $('#admin-email').value.trim(), password: $('#admin-password').value });
       if (error) { $('#admin-login-feedback').textContent = `Não foi possível entrar: ${error.message}`; return; }
-      await showAdminPanel(data.session);
+      await showAdminPanel(data.session, loginMode);
     });
     $('#signup-open').addEventListener('click', () => { $('#admin-login').hidden = true; $('#admin-signup').hidden = false; });
     $('#signup-cancel').addEventListener('click', () => { $('#admin-signup').hidden = true; $('#admin-login').hidden = false; });
@@ -485,7 +549,25 @@
       renderShopProfile();
       $('#profile-feedback').textContent = 'Perfil salvo. O endereço atualizado já pode ser compartilhado.';
     });
-    $('#admin-logout').addEventListener('click', async () => { adminAuthorized = false; await db.auth.signOut(); $('#admin-content').hidden = true; $('#admin-login').hidden = false; $('#admin-password').value = ''; $('#admin-login-feedback').textContent = 'Você saiu da área da barbearia.'; });
+    $('#admin-logout').addEventListener('click', async () => { adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false; await db.auth.signOut(); $('#admin-content').hidden = true; $('#admin-login').hidden = false; $('#admin-password').value = ''; $('#admin-login-feedback').textContent = 'Você saiu da área da barbearia.'; });
+    $('#admin-shop-open').addEventListener('click', async () => {
+      const slug = $('#admin-shop-list').value;
+      if (!slug) { $('#admin-shop-picker-feedback').textContent = 'Escolha uma barbearia para continuar.'; return; }
+      setShopSlug(slug); shop = null; adminAuthorized = true;
+      adminViewingInactiveShop = true;
+      $('#admin-shop-picker-feedback').textContent = 'Carregando área da barbearia…';
+      try {
+        await loadSharedData(true, true);
+        const url = new URL(location.href); url.searchParams.set('loja', slug); history.replaceState({}, '', url);
+        showShopAdminContent();
+      } catch (error) { $('#admin-shop-picker-feedback').textContent = `Não foi possível abrir esta barbearia: ${error.message}`; }
+    });
+    $('#admin-back-to-shops').addEventListener('click', showPlatformShopPicker);
+    $('#admin-shop-logout').addEventListener('click', async () => {
+      adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false; await db.auth.signOut();
+      $('#admin-shop-picker').hidden = true; $('#admin-login').hidden = false; $('#admin-password').value = '';
+      $('#admin-login-feedback').textContent = 'Você saiu da área ADM.';
+    });
     $('.dialog-close', dialog).addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
     $$('.admin-tab').forEach(tab => tab.addEventListener('click', () => {
@@ -592,12 +674,12 @@
     if (db) {
       loadSharedData(false).catch(showDatabaseError);
       db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') adminAuthorized = false;
+        if (event === 'SIGNED_OUT') { adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false; }
       });
       db.channel('barbershop-live-calendar')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => loadSharedData(adminAuthorized).catch(showDatabaseError))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => loadSharedData(adminAuthorized).catch(showDatabaseError))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_hours' }, () => loadSharedData(adminAuthorized).catch(showDatabaseError))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => loadSharedData(adminAuthorized, adminViewingInactiveShop).catch(showDatabaseError))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => loadSharedData(adminAuthorized, adminViewingInactiveShop).catch(showDatabaseError))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_hours' }, () => loadSharedData(adminAuthorized, adminViewingInactiveShop).catch(showDatabaseError))
         .subscribe();
     }
   }
