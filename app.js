@@ -533,7 +533,7 @@
       const button = $('#password-reset-request');
       button.disabled = true;
       $('#admin-login-feedback').textContent = 'Enviando link de recuperação…';
-      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}` });
+      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: 'https://barbearia-eight-sigma.vercel.app/' });
       button.disabled = false;
       $('#admin-login-feedback').textContent = error
         ? `Não foi possível solicitar a recuperação: ${error.message}`
