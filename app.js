@@ -399,6 +399,18 @@
     let isAdmin = false;
     try { isAdmin = await isPlatformAdmin(session.user.id); }
     catch (error) { $('#admin-login-feedback').textContent = `Não foi possível conferir o perfil de acesso: ${error.message}`; return; }
+    if (isAdmin) {
+      const { data: adminSetup, error: setupError } = await db.from('barber_admins').select('must_change_password').eq('user_id', session.user.id).maybeSingle();
+      if (setupError) { $('#admin-login-feedback').textContent = `Não foi possível conferir a configuração da senha: ${setupError.message}`; return; }
+      if (adminSetup?.must_change_password) {
+        login.hidden = true; signup.hidden = true; setup.hidden = true; content.hidden = true;
+        $('#admin-shop-picker').hidden = true; $('#password-recovery').hidden = true;
+        $('#admin-password-setup-form').reset();
+        $('#admin-password-feedback').textContent = '';
+        $('#admin-password-setup').hidden = false;
+        return;
+      }
+    }
     if (mode === 'platform') {
       if (!isAdmin) {
         await db.auth.signOut();
@@ -524,6 +536,40 @@
       const { data, error } = await db.auth.signInWithPassword({ email: $('#admin-email').value.trim(), password: $('#admin-password').value });
       if (error) { $('#admin-login-feedback').textContent = `Não foi possível entrar: ${error.message}`; return; }
       await showAdminPanel(data.session, loginMode);
+    });
+    $('#admin-password-setup-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const password = $('#admin-password-new').value;
+      if (password !== $('#admin-password-confirm').value) { $('#admin-password-feedback').textContent = 'As senhas não coincidem.'; return; }
+      const button = $('#admin-password-save');
+      button.disabled = true;
+      $('#admin-password-feedback').textContent = 'Atualizando sua senha…';
+      const { error: passwordError } = await db.auth.updateUser({ password });
+      if (passwordError) {
+        button.disabled = false;
+        $('#admin-password-feedback').textContent = `Não foi possível atualizar a senha: ${passwordError.message}`;
+        return;
+      }
+      const { error: completionError } = await db.rpc('complete_admin_password_change');
+      button.disabled = false;
+      if (completionError) {
+        $('#admin-password-feedback').textContent = `A senha mudou, mas não foi possível concluir a ativação: ${completionError.message}. Tente salvar novamente com outra senha.`;
+        return;
+      }
+      const { data: userData } = await db.auth.getUser();
+      const email = userData.user?.email || '';
+      await db.auth.signOut();
+      $('#admin-password-setup').hidden = true;
+      $('#admin-login').hidden = false;
+      $('#admin-email').value = email;
+      $('#admin-password').value = '';
+      $('#admin-login-feedback').textContent = 'Senha definida. Entre novamente com sua nova senha.';
+    });
+    $('#admin-password-logout').addEventListener('click', async () => {
+      await db.auth.signOut();
+      $('#admin-password-setup').hidden = true;
+      $('#admin-login').hidden = false;
+      $('#admin-password').value = '';
     });
     $('#password-reset-request').addEventListener('click', async () => {
       if (!db) { $('#admin-login-feedback').textContent = 'Conexão com o Supabase indisponível.'; return; }
