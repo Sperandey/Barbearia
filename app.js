@@ -31,6 +31,7 @@
   let adminAuthorized = false;
   let platformAdmin = false;
   let adminViewingInactiveShop = false;
+  let passwordRecoveryPending = sessionStorage.getItem('barber-password-recovery-pending') === 'true';
   let loginMode = 'shop';
 
   function escapeHTML(value) {
@@ -475,7 +476,9 @@
     return true;
   }
   async function openAdmin() {
+    if (passwordRecoveryPending) { showPasswordRecoveryPanel(); return; }
     $('#admin-login').hidden = false; $('#admin-signup').hidden = true; $('#admin-shop-picker').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = true; $('#admin-login-feedback').textContent = '';
+    $('#password-recovery').hidden = true;
     $('#admin-dialog').showModal();
     if (db) {
       const { data } = await db.auth.getSession();
@@ -485,6 +488,17 @@
         await showAdminPanel(data.session, mode);
       }
     } else $('#admin-login-feedback').textContent = 'Não foi possível carregar a conexão com o Supabase.';
+  }
+  function showPasswordRecoveryPanel() {
+    adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false;
+    passwordRecoveryPending = true;
+    sessionStorage.setItem('barber-password-recovery-pending', 'true');
+    $('#admin-login').hidden = true; $('#admin-signup').hidden = true; $('#admin-shop-picker').hidden = true;
+    $('#shop-setup').hidden = true; $('#admin-content').hidden = true; $('#password-recovery').hidden = false;
+    $('#password-recovery-form').reset();
+    $('#password-recovery-feedback').textContent = '';
+    const dialog = $('#admin-dialog');
+    if (!dialog.open) dialog.showModal();
   }
   function setupAdmin() {
     const dialog = $('#admin-dialog');
@@ -510,6 +524,47 @@
       const { data, error } = await db.auth.signInWithPassword({ email: $('#admin-email').value.trim(), password: $('#admin-password').value });
       if (error) { $('#admin-login-feedback').textContent = `Não foi possível entrar: ${error.message}`; return; }
       await showAdminPanel(data.session, loginMode);
+    });
+    $('#password-reset-request').addEventListener('click', async () => {
+      if (!db) { $('#admin-login-feedback').textContent = 'Conexão com o Supabase indisponível.'; return; }
+      const email = $('#admin-email').value.trim();
+      if (!email) { $('#admin-login-feedback').textContent = 'Digite seu e-mail acima para receber o link de recuperação.'; $('#admin-email').focus(); return; }
+      if (!$('#admin-email').reportValidity()) return;
+      const button = $('#password-reset-request');
+      button.disabled = true;
+      $('#admin-login-feedback').textContent = 'Enviando link de recuperação…';
+      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}` });
+      button.disabled = false;
+      $('#admin-login-feedback').textContent = error
+        ? `Não foi possível solicitar a recuperação: ${error.message}`
+        : 'Se houver uma conta com esse e-mail, enviaremos um link para criar uma nova senha.';
+    });
+    $('#password-recovery-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const password = $('#password-reset-new').value;
+      if (password !== $('#password-reset-confirm').value) { $('#password-recovery-feedback').textContent = 'As senhas não coincidem.'; return; }
+      const button = $('#password-reset-save');
+      button.disabled = true;
+      $('#password-recovery-feedback').textContent = 'Salvando a nova senha…';
+      const { data: userData } = await db.auth.getUser();
+      const email = userData.user?.email || '';
+      const { error } = await db.auth.updateUser({ password });
+      button.disabled = false;
+      if (error) { $('#password-recovery-feedback').textContent = `Não foi possível alterar a senha: ${error.message}`; return; }
+      passwordRecoveryPending = false;
+      sessionStorage.removeItem('barber-password-recovery-pending');
+      await db.auth.signOut();
+      $('#password-recovery').hidden = true; $('#admin-login').hidden = false;
+      $('#password-recovery-feedback').textContent = '';
+      $('#admin-email').value = email; $('#admin-password').value = '';
+      $('#admin-login-feedback').textContent = 'Senha alterada. Entre com a nova senha.';
+    });
+    $('#password-recovery-cancel').addEventListener('click', async () => {
+      await db.auth.signOut();
+      passwordRecoveryPending = false;
+      sessionStorage.removeItem('barber-password-recovery-pending');
+      $('#password-recovery').hidden = true; $('#admin-login').hidden = false;
+      $('#admin-password').value = '';
     });
     $('#signup-open').addEventListener('click', () => {
       $('#admin-login').hidden = true; $('#admin-signup').hidden = false;
@@ -778,7 +833,8 @@
     if (db) {
       loadSharedData(false).catch(showDatabaseError);
       db.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') { adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false; }
+        if (event === 'SIGNED_OUT') { adminAuthorized = false; platformAdmin = false; adminViewingInactiveShop = false; passwordRecoveryPending = false; sessionStorage.removeItem('barber-password-recovery-pending'); }
+        if (event === 'PASSWORD_RECOVERY') showPasswordRecoveryPanel();
       });
       db.channel('barbershop-live-calendar')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => loadSharedData(adminAuthorized, adminViewingInactiveShop).catch(showDatabaseError))

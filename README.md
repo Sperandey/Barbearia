@@ -10,6 +10,7 @@ Site responsivo em HTML, CSS e JavaScript puro. Abra `index.html` no navegador o
 - Cada loja recebe um endereço próprio no formato `?loja=slug`.
 - Cada barbearia confirma o e-mail com um código antes de criar sua senha e acessar serviços, valores, expediente e pedidos da loja.
 - A conta ADM entra pela opção **ADM** e pode selecionar e administrar todas as barbearias.
+- A opção **Esqueci minha senha** envia um link de recuperação por e-mail; a nova senha é confirmada no retorno ao app.
 - Serviços, horários, perfil e reservas são separados por barbearia.
 - O cliente escolhe um horário e envia a solicitação pelo WhatsApp da loja.
 
