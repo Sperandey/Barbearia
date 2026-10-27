@@ -1,4 +1,4 @@
-# BarbeariadoEdy — Barbearia do Édi
+# barbearia-eight-sigma — Barbearia do Édi
 
 Site responsivo em HTML, CSS e JavaScript puro. Abra `index.html` no navegador ou sirva a pasta com qualquer hospedagem estática.
 
