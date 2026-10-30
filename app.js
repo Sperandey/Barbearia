@@ -383,6 +383,7 @@
   async function showPlatformShopPicker() {
     adminAuthorized = false;
     $('#admin-login').hidden = true; $('#admin-signup').hidden = true; $('#shop-setup').hidden = true; $('#admin-content').hidden = true;
+    $('#admin-shop-create').hidden = true;
     $('#admin-shop-picker').hidden = false;
     const select = $('#admin-shop-list');
     select.innerHTML = '<option value="">Carregando barbearias…</option>';
@@ -766,6 +767,60 @@
         const url = new URL(location.href); url.searchParams.set('loja', slug); history.replaceState({}, '', url);
         showShopAdminContent();
       } catch (error) { $('#admin-shop-picker-feedback').textContent = `Não foi possível abrir esta barbearia: ${error.message}`; }
+    });
+    $('#admin-shop-create-open').addEventListener('click', () => {
+      $('#admin-shop-picker').hidden = true;
+      $('#admin-shop-create').hidden = false;
+      $('#admin-shop-create-form').reset();
+      $('#admin-shop-create-feedback').textContent = '';
+      $('#admin-shop-create-name').focus();
+    });
+    $('#admin-shop-create-cancel').addEventListener('click', () => {
+      $('#admin-shop-create').hidden = true;
+      $('#admin-shop-picker').hidden = false;
+      $('#admin-shop-create-form').reset();
+      $('#admin-shop-create-feedback').textContent = '';
+    });
+    $('#admin-shop-create-name').addEventListener('input', () => {
+      if (!$('#admin-shop-create-slug').dataset.edited) {
+        $('#admin-shop-create-slug').value = $('#admin-shop-create-name').value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      }
+    });
+    $('#admin-shop-create-slug').addEventListener('input', () => { $('#admin-shop-create-slug').dataset.edited = 'true'; });
+    $('#admin-shop-create-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!db) { $('#admin-shop-create-feedback').textContent = 'Conexão com o Supabase indisponível.'; return; }
+      const password = $('#admin-shop-create-password').value;
+      if (password !== $('#admin-shop-create-confirm').value) { $('#admin-shop-create-feedback').textContent = 'As senhas não coincidem.'; return; }
+      const button = $('#admin-shop-create-save');
+      button.disabled = true;
+      $('#admin-shop-create-feedback').textContent = 'Criando conta e perfil da barbearia…';
+      const { data, error } = await db.functions.invoke('create-shop-account', {
+        body: {
+          name: $('#admin-shop-create-name').value.trim(),
+          slug: $('#admin-shop-create-slug').value.trim(),
+          whatsapp: $('#admin-shop-create-whatsapp').value.trim(),
+          email: $('#admin-shop-create-email').value.trim(),
+          password,
+        },
+      });
+      button.disabled = false;
+      if (error) {
+        let message = error.message;
+        try { const detail = await error.context?.json(); if (detail?.error) message = detail.error; } catch {}
+        $('#admin-shop-create-feedback').textContent = `Não foi possível criar o acesso: ${message}`;
+        return;
+      }
+      if (!data?.shop?.slug) { $('#admin-shop-create-feedback').textContent = 'A resposta do servidor não confirmou o cadastro.'; return; }
+      const shopName = data.shop.name;
+      const shopSlug = data.shop.slug;
+      const shopEmail = $('#admin-shop-create-email').value.trim();
+      const shopUrl = new URL(location.href);
+      shopUrl.searchParams.set('loja', shopSlug);
+      $('#admin-shop-create-form').reset();
+      $('#admin-shop-create-slug').dataset.edited = '';
+      await showPlatformShopPicker();
+      $('#admin-shop-picker-feedback').textContent = `Acesso criado para ${shopName} (${shopEmail}). Link público: ${shopUrl.origin}${shopUrl.pathname}?loja=${encodeURIComponent(shopSlug)}`;
     });
     $('#admin-back-to-shops').addEventListener('click', showPlatformShopPicker);
     $('#admin-shop-logout').addEventListener('click', async () => {
