@@ -772,6 +772,7 @@
       $('#admin-shop-picker').hidden = true;
       $('#admin-shop-create').hidden = false;
       $('#admin-shop-create-form').reset();
+      $('#admin-shop-create-slug').dataset.edited = '';
       $('#admin-shop-create-feedback').textContent = '';
       $('#admin-shop-create-name').focus();
     });
@@ -779,6 +780,7 @@
       $('#admin-shop-create').hidden = true;
       $('#admin-shop-picker').hidden = false;
       $('#admin-shop-create-form').reset();
+      $('#admin-shop-create-slug').dataset.edited = '';
       $('#admin-shop-create-feedback').textContent = '';
     });
     $('#admin-shop-create-name').addEventListener('input', () => {
